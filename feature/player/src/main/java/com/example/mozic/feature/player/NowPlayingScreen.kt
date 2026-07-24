@@ -58,9 +58,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -315,9 +318,25 @@ private fun NowPlayingContent(
     }
 }
 
-/** Design handoff: Shuffle — Previous — Play/Pause — Next — Repeat, `space-between`. */
+/**
+ * Design handoff: Shuffle — Previous — Play/Pause — Next — Repeat, `space-between`.
+ *
+ * Deliberately left to follow the ambient layout direction rather than
+ * forcing LTR: under Farsi (RTL), the whole row visually mirrors, putting
+ * the Next button on the left and the Previous button on the right of
+ * Play/Pause, matching the app's other RTL-mirrored rows. [Icons.Filled.SkipNext]/
+ * [Icons.Filled.SkipPrevious] aren't auto-mirrored, though, so their glyphs
+ * stay fixed regardless of position — left uncorrected, the left-hand
+ * ("Next") button would still show a right-pointing glyph, i.e. one that
+ * visually points *away* from the direction it navigates. Swapping which
+ * glyph goes on which button under RTL (without touching which button does
+ * what) keeps each glyph pointing the way its button actually moves.
+ */
 @Composable
 private fun TransportRow(state: PlayerState, actions: NowPlayingActions, modifier: Modifier = Modifier) {
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val previousIcon = if (isRtl) Icons.Filled.SkipNext else Icons.Filled.SkipPrevious
+    val nextIcon = if (isRtl) Icons.Filled.SkipPrevious else Icons.Filled.SkipNext
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -326,7 +345,7 @@ private fun TransportRow(state: PlayerState, actions: NowPlayingActions, modifie
         ShuffleButton(enabled = state.shuffleEnabled, onClick = actions.onToggleShuffle)
         IconButton(onClick = actions.onPrevious) {
             Icon(
-                imageVector = Icons.Filled.SkipPrevious,
+                imageVector = previousIcon,
                 contentDescription = stringResource(DesignSystemR.string.cd_previous),
                 modifier = Modifier.size(MaterialTheme.dimens.spaceXl),
             )
@@ -354,7 +373,7 @@ private fun TransportRow(state: PlayerState, actions: NowPlayingActions, modifie
         }
         IconButton(onClick = actions.onNext) {
             Icon(
-                imageVector = Icons.Filled.SkipNext,
+                imageVector = nextIcon,
                 contentDescription = stringResource(DesignSystemR.string.cd_next),
                 modifier = Modifier.size(MaterialTheme.dimens.spaceXl),
             )

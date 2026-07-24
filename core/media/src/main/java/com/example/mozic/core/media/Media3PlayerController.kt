@@ -45,6 +45,14 @@ private const val POSITION_TICK_IDLE_MS = 1_000L
 private const val SLEEP_TIMER_TICK_MS = 1_000L
 
 /**
+ * Standard media-player UX for the "previous" transport control: within the
+ * first [PREVIOUS_REPLAY_THRESHOLD_MS] of a track, it goes to the previous
+ * song; past that, it restarts the current one instead — otherwise a slightly
+ * late tap could never get back to the start of what's actually playing.
+ */
+private const val PREVIOUS_REPLAY_THRESHOLD_MS = 5_000L
+
+/**
  * How often [Media3PlayerController.persistState] actually writes to disk while a queue is
  * loaded (I3, `doc/CLAUDE_PERSON_A.md` §5.7) — ticked from the same position loop that already
  * runs every [POSITION_TICK_PLAYING_MS]/[POSITION_TICK_IDLE_MS], so this just throttles disk
@@ -245,7 +253,13 @@ class Media3PlayerController @Inject constructor(
 
     override fun next() = withController { it.seekToNextMediaItem() }
 
-    override fun previous() = withController { it.seekToPreviousMediaItem() }
+    override fun previous() = withController { controller ->
+        if (controller.currentPosition >= PREVIOUS_REPLAY_THRESHOLD_MS) {
+            controller.seekTo(0)
+        } else {
+            controller.seekToPreviousMediaItem()
+        }
+    }
 
     override fun seekTo(positionMs: Long) = withController { it.seekTo(positionMs) }
 
