@@ -15,7 +15,8 @@ sealed interface HomeRow {
 
     data class Songs(
         override val title: String,
-        val section: HomeSection,
+        /** Null for a row with no pageable backing (e.g. Discover's random pick) — no "see all". */
+        val section: HomeSection?,
         val songs: List<Song>,
     ) : HomeRow
 

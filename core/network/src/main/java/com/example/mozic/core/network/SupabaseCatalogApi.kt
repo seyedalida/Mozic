@@ -1,5 +1,6 @@
 package com.example.mozic.core.network
 
+import com.example.mozic.core.network.dto.IncrementPopularityRequestDto
 import com.example.mozic.core.network.dto.PlaylistDto
 import com.example.mozic.core.network.dto.PlaylistInsertDto
 import com.example.mozic.core.network.dto.PlaylistSongCountRowDto
@@ -53,6 +54,28 @@ class SupabaseCatalogApi @Inject constructor(
             parameter("select", "*")
         }
         return response.body<List<SongDto>>().firstOrNull()
+    }
+
+    /** Exact match — `artist_name` is a plain text column, not a foreign key (no separate artists table). */
+    suspend fun songsByArtist(artistName: String): List<SongDto> {
+        val response = client.get(restUrl("songs")) {
+            parameter("artist_name", "eq.$artistName")
+            parameter("select", "*")
+            parameter("order", "popularity.desc")
+        }
+        return response.body()
+    }
+
+    /**
+     * `security definer` RPC (schema.sql) — no auth needed, works the same
+     * for a logged-out browsing session as a signed-in one, since anon can
+     * already play every song.
+     */
+    suspend fun incrementSongPopularity(songId: String) {
+        client.post(restUrl("rpc/increment_song_popularity")) {
+            contentType(ContentType.Application.Json)
+            setBody(IncrementPopularityRequestDto(songId))
+        }
     }
 
     suspend fun playlists(category: String): List<PlaylistDto> {

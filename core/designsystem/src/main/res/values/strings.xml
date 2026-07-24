@@ -19,6 +19,7 @@
     <string name="action_retry">Retry</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_back">Back</string>
+    <string name="action_see_all">See all</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -76,6 +77,8 @@
     <string name="home_quick_action_top_artists">Top artists</string>
     <string name="home_section_most_popular">Most popular</string>
     <string name="home_section_newest">Newest</string>
+    <string name="home_section_discover">Discover</string>
+    <string name="home_top_artists_empty">Songs will show up here once the catalog has some</string>
     <string name="home_section_global_playlists">Global playlists</string>
     <string name="home_section_local_playlists">Local playlists</string>
     <string name="home_playlist_song_count">%d songs</string>

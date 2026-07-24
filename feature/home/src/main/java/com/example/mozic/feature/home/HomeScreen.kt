@@ -9,10 +9,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,15 +40,19 @@ import com.example.mozic.feature.home.component.QuickActionsRow
 
 private const val SKELETON_ROW_COUNT = 3
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToPlaylists: () -> Unit,
     onNavigateToLiked: () -> Unit,
     onNavigateToRecentlyPlayed: () -> Unit,
+    onNavigateToTopArtists: () -> Unit,
+    onNavigateToSection: (HomeSection) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val comingSoonMessage = stringResource(DesignSystemR.string.placeholder_coming_soon)
 
@@ -56,6 +62,8 @@ fun HomeScreen(
                 HomeEffect.NavigateToPlaylists -> onNavigateToPlaylists()
                 HomeEffect.NavigateToLiked -> onNavigateToLiked()
                 HomeEffect.NavigateToRecentlyPlayed -> onNavigateToRecentlyPlayed()
+                HomeEffect.NavigateToTopArtists -> onNavigateToTopArtists()
+                is HomeEffect.NavigateToSection -> onNavigateToSection(effect.section)
                 HomeEffect.ShowComingSoon -> snackbarHostState.showSnackbar(comingSoonMessage)
             }
         }
@@ -65,13 +73,21 @@ fun HomeScreen(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        HomeContent(
-            uiState = uiState,
-            onEvent = viewModel::onEvent,
+        // Pulling down at the top of the list re-fetches Home from the backend —
+        // Discover reshuffles and Top artists re-derives from whatever's changed.
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.onEvent(HomeEvent.Retry) },
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-        )
+        ) {
+            HomeContent(
+                uiState = uiState,
+                onEvent = viewModel::onEvent,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 
@@ -146,15 +162,19 @@ private fun HomeRowContent(
     modifier: Modifier = Modifier,
 ) {
     when (row) {
-        is HomeRow.Songs -> HomeSectionRow(
-            title = stringResource(row.section.titleRes()),
-            modifier = modifier,
-        ) {
-            items(row.songs, key = Song::id) { song ->
-                SongCard(
-                    song = song,
-                    onClick = { onEvent(HomeEvent.SongClick(song, row.songs)) },
-                )
+        is HomeRow.Songs -> {
+            val section = row.section
+            HomeSectionRow(
+                title = stringResource(section?.titleRes() ?: DesignSystemR.string.home_section_discover),
+                onSeeAllClick = section?.let { { onEvent(HomeEvent.SeeAllClick(it)) } },
+                modifier = modifier,
+            ) {
+                items(row.songs, key = Song::id) { song ->
+                    SongCard(
+                        song = song,
+                        onClick = { onEvent(HomeEvent.SongClick(song, row.songs)) },
+                    )
+                }
             }
         }
 
@@ -172,7 +192,7 @@ private fun HomeRowContent(
     }
 }
 
-private fun HomeSection.titleRes(): Int = when (this) {
+internal fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.MOST_POPULAR -> DesignSystemR.string.home_section_most_popular
     HomeSection.NEWEST -> DesignSystemR.string.home_section_newest
 }

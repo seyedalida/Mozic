@@ -39,6 +39,7 @@ fun MozicNavHost(
         modifier = modifier,
     ) {
         homeScreen(
+            navController,
             onNavigateToPlaylists = {
                 navController.navigateToTopLevelDestination(TopLevelDestination.PLAYLISTS)
             },
@@ -46,6 +47,7 @@ fun MozicNavHost(
             onNavigateToRecentlyPlayed = {
                 navController.navigateToLibraryList(LibraryListKind.RECENTLY_PLAYED)
             },
+            onShareClick = navController::navigateToShareSong,
         )
         searchScreen(onShareClick = navController::navigateToShareSong)
         downloadsScreen(onShareClick = navController::navigateToShareSong)

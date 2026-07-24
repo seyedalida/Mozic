@@ -110,6 +110,7 @@ POST /auth/v1/token?grant_type=password        { email, password } → { access_
 GET  /rest/v1/songs?select=…&order=…            (filters/sort/embeds are PostgREST query params)
 GET  /rest/v1/songs?id=eq.<id>&select=…
 POST /rest/v1/rpc/search_catalog                { q, result_type }  → cross-song/artist/playlist search
+POST /rest/v1/rpc/increment_song_popularity     { song_id }   → atomic +1 on real playback (security definer)
 GET  /rest/v1/playlists?category=eq.WORLD&select=…
 POST /rest/v1/playlists  { id, title, owner_id, category: "USER" }   (authenticated, RLS: owner_id = auth.uid())
 GET  /rest/v1/playlist_songs?playlist_id=eq.<id>&select=position,songs(*)&order=position

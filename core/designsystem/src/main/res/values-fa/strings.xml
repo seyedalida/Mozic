@@ -14,6 +14,7 @@
     <string name="action_retry">تلاش دوباره</string>
     <string name="action_cancel">لغو</string>
     <string name="action_back">بازگشت</string>
+    <string name="action_see_all">مشاهده همه</string>
 
     <!-- Settings -->
     <string name="settings_title">تنظیمات</string>
@@ -71,6 +72,8 @@
     <string name="home_quick_action_top_artists">هنرمندان برتر</string>
     <string name="home_section_most_popular">محبوب‌ترین‌ها</string>
     <string name="home_section_newest">جدیدترین‌ها</string>
+    <string name="home_section_discover">کشف کنید</string>
+    <string name="home_top_artists_empty">با اضافه شدن آهنگ به کاتالوگ، اینجا نمایش داده می‌شوند</string>
     <string name="home_section_global_playlists">پلی‌لیست‌های جهانی</string>
     <string name="home_section_local_playlists">پلی‌لیست‌های محلی</string>
     <string name="home_playlist_song_count">%d آهنگ</string>

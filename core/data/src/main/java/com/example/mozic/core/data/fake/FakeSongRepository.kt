@@ -7,6 +7,7 @@ import com.example.mozic.core.domain.model.HomeRow
 import com.example.mozic.core.domain.model.HomeSection
 import com.example.mozic.core.domain.model.PlaylistCategory
 import com.example.mozic.core.domain.model.Song
+import com.example.mozic.core.domain.model.TopArtist
 import com.example.mozic.core.domain.repository.SongRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,6 +29,7 @@ class FakeSongRepository @Inject constructor() : SongRepository {
                 rows = listOf(
                     HomeRow.Songs("Most popular", HomeSection.MOST_POPULAR, SampleData.songs.take(8)),
                     HomeRow.Songs("Newest", HomeSection.NEWEST, SampleData.songs.takeLast(8)),
+                    HomeRow.Songs("Discover", null, SampleData.songs.shuffled().take(8)),
                     HomeRow.Playlists(
                         "Global playlists",
                         PlaylistCategory.WORLD,
@@ -55,6 +57,18 @@ class FakeSongRepository @Inject constructor() : SongRepository {
         SampleData.songs.find { it.id == id }
             ?.let { Result.Success(it) }
             ?: Result.Error(NoSuchElementException("No song with id=$id"))
+
+    override fun topArtists(): Flow<List<TopArtist>> = flowOf(
+        SampleData.songs.groupBy { it.artistName }
+            .map { (name, songs) ->
+                TopArtist(name = name, imageUrl = songs.first().coverImageUrl, songCount = songs.size)
+            },
+    )
+
+    override fun songsByArtist(artistName: String): Flow<List<Song>> =
+        flowOf(SampleData.songs.filter { it.artistName == artistName })
+
+    override suspend fun recordPlaybackForPopularity(songId: String) = Unit
 
     private fun playlistsOf(category: PlaylistCategory) =
         SampleData.playlists.filter { it.category == category }

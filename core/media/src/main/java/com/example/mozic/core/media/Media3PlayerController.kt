@@ -307,11 +307,18 @@ class Media3PlayerController @Inject constructor(
                  * song — never on a bare UI tap-to-play with no resulting
                  * transition. This is the one seam B5 flagged: only real
                  * playback transitions should count towards Recently Played,
-                 * not every screen's own click handler.
+                 * not every screen's own click handler. Same reasoning applies
+                 * to bumping the catalog's `popularity` column — a separate
+                 * `scope.launch` (not chained after the one above) so a
+                 * failed/offline popularity RPC can never affect the local
+                 * Recently Played write, and vice versa; `scope` is
+                 * `SupervisorJob`-backed (`MediaModule`), so either one
+                 * throwing doesn't cancel the other or the shared scope.
                  */
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     val songId = mediaItem?.mediaId ?: return
                     scope.launch { libraryRepository.recordPlayed(songId) }
+                    scope.launch { runCatching { songRepository.recordPlaybackForPopularity(songId) } }
                     fadeIn(controller)
                 }
             },

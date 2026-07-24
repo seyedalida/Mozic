@@ -9,6 +9,7 @@ import com.example.mozic.core.domain.model.HomeRow
 import com.example.mozic.core.domain.model.HomeSection
 import com.example.mozic.core.domain.model.PlaylistCategory
 import com.example.mozic.core.domain.model.Song
+import com.example.mozic.core.domain.model.TopArtist
 import com.example.mozic.core.domain.repository.SongRepository
 import com.example.mozic.core.network.SupabaseCatalogApi
 import com.example.mozic.core.network.mapper.playlistsWithCounts
@@ -28,6 +29,17 @@ private const val POPULARITY_DESC = "popularity.desc"
 private const val CREATED_AT_DESC = "created_at.desc"
 
 /**
+ * Wide enough to cover the whole catalog (60 seeded songs, per
+ * `backend/supabase/seed.py`) with headroom for it to grow — both
+ * [NetworkSongRepository.topArtists] (needs every song to aggregate
+ * correctly, not just a top-N slice) and the Discover row (wants a genuine
+ * random pick, not just a shuffle of the top few) read from a pool this size.
+ */
+private const val CATALOG_POOL_SIZE = 200
+
+private const val TOP_ARTISTS_LIMIT = 10
+
+/**
  * Real, Supabase/PostgREST-backed [SongRepository] (C2). Suspend Ktor calls are
  * already non-blocking and internally sequenced onto their own dispatcher — no
  * `@IoDispatcher` to inject here, same reasoning as
@@ -44,9 +56,14 @@ class NetworkSongRepository @Inject constructor(
             val newestDeferred = async { api.songs(CREATED_AT_DESC, 0 until HOME_ROW_SIZE) }
             val worldDeferred = async { api.playlistsWithCounts(PlaylistCategory.WORLD) }
             val localDeferred = async { api.playlistsWithCounts(PlaylistCategory.LOCAL) }
+            // Its own fetch (not reused from `popular`/`newest`, both capped at HOME_ROW_SIZE) —
+            // a genuine random pick needs a pool spanning the whole catalog, not just the top 8
+            // of some other ordering.
+            val discoverPoolDeferred = async { api.songs(POPULARITY_DESC, 0 until CATALOG_POOL_SIZE) }
 
             val popular = popularDeferred.await().items.map { it.toDomain() }
             val newest = newestDeferred.await().items.map { it.toDomain() }
+            val discover = discoverPoolDeferred.await().items.map { it.toDomain() }.shuffled().take(HOME_ROW_SIZE)
 
             emit(
                 HomeContent(
@@ -54,6 +71,8 @@ class NetworkSongRepository @Inject constructor(
                     rows = listOf(
                         HomeRow.Songs("Most popular", HomeSection.MOST_POPULAR, popular),
                         HomeRow.Songs("Newest", HomeSection.NEWEST, newest),
+                        // No HomeSection — a random pick has no stable "see all" list to page through.
+                        HomeRow.Songs("Discover", null, discover),
                         HomeRow.Playlists("Global playlists", PlaylistCategory.WORLD, worldDeferred.await()),
                         HomeRow.Playlists("Local playlists", PlaylistCategory.LOCAL, localDeferred.await()),
                     ),
@@ -81,5 +100,42 @@ class NetworkSongRepository @Inject constructor(
             ?: Result.Error(NoSuchElementException("No song with id=$id"))
     } catch (e: Exception) {
         Result.Error(e)
+    }
+
+    /**
+     * Groups the whole catalog by [Song.artistName] — there's no separate
+     * artists table (`backend/README.md`), so "top artists" is entirely
+     * derived here, same technique `search_catalog()`'s SQL RPC uses for its
+     * own artist results (`distinct on (artist_name) ... order by popularity
+     * desc`), just done in Kotlin instead of SQL since this needs every
+     * artist's full song group, not one row per artist.
+     *
+     * Ranked by each artist's single most popular song, not a summed/average
+     * score across all their songs — [SongDto] never exposes the raw
+     * `popularity` column to the client at all (only used server-side for
+     * `order=`), so a per-artist aggregate score genuinely can't be computed
+     * here. [songs] arrives popularity-sorted from the server, and
+     * `groupBy` preserves each key's first-encounter order, so the resulting
+     * map is already ordered by "the rank of that artist's best song" with
+     * no extra sorting needed — the first song in each group is also that
+     * artist's most popular, reused below as the representative cover.
+     */
+    override fun topArtists(): Flow<List<TopArtist>> = flow {
+        val songs = api.songs(POPULARITY_DESC, 0 until CATALOG_POOL_SIZE).items.map { it.toDomain() }
+        val topArtists = songs.groupBy { it.artistName }
+            .entries
+            .take(TOP_ARTISTS_LIMIT)
+            .map { (artistName, artistSongs) ->
+                TopArtist(name = artistName, imageUrl = artistSongs.first().coverImageUrl, songCount = artistSongs.size)
+            }
+        emit(topArtists)
+    }
+
+    override fun songsByArtist(artistName: String): Flow<List<Song>> = flow {
+        emit(api.songsByArtist(artistName).map { it.toDomain() })
+    }
+
+    override suspend fun recordPlaybackForPopularity(songId: String) {
+        api.incrementSongPopularity(songId)
     }
 }

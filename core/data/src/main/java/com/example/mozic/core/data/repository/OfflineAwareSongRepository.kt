@@ -8,6 +8,7 @@ import com.example.mozic.core.data.worker.STATE_DOWNLOADED
 import com.example.mozic.core.domain.model.HomeContent
 import com.example.mozic.core.domain.model.HomeSection
 import com.example.mozic.core.domain.model.Song
+import com.example.mozic.core.domain.model.TopArtist
 import com.example.mozic.core.domain.repository.SongRepository
 import com.example.mozic.core.network.repository.NetworkSongRepository
 import javax.inject.Inject
@@ -41,6 +42,16 @@ class OfflineAwareSongRepository @Inject constructor(
         if (downloaded != null) return Result.Success(downloaded)
         return network.song(id)
     }
+
+    // Catalog browsing, same as homeContent/pagedSection — no offline-download seam to apply.
+    override fun topArtists(): Flow<List<TopArtist>> = network.topArtists()
+
+    override fun songsByArtist(artistName: String): Flow<List<Song>> = network.songsByArtist(artistName)
+
+    // Best-effort — a downloaded song played fully offline just won't bump its
+    // popularity until the caller's own fire-and-forget call fails silently;
+    // no local queue/retry, same as the rest of this "catalog" half of the interface.
+    override suspend fun recordPlaybackForPopularity(songId: String) = network.recordPlaybackForPopularity(songId)
 }
 
 private fun DownloadEntity.toSong(): Song = Song(

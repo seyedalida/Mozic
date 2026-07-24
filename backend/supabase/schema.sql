@@ -115,7 +115,8 @@ create policy "avatars_delete_own" on storage.objects
 -- ============================================================
 -- songs — the catalog. Public read-only via the API; writes
 -- only via the secret key (seeding/admin), matching C1's
--- "catalog is server-managed" model.
+-- "catalog is server-managed" model — except `popularity`, which
+-- real playback increments through the narrow RPC below.
 -- ============================================================
 create table if not exists public.songs (
     id text primary key,
@@ -140,6 +141,25 @@ grant insert, update, delete on public.songs to service_role;
 create index if not exists songs_popularity_idx on public.songs (popularity desc);
 create index if not exists songs_created_at_idx on public.songs (created_at desc);
 create index if not exists songs_artist_name_idx on public.songs (artist_name);
+
+-- Atomic "+1" on a real playback transition (`Media3PlayerController`'s
+-- `onMediaItemTransition`, same moment it already calls `recordPlayed()` for
+-- the local Recently-played list) — never a plain PATCH, which would need a
+-- read-then-write from the client and race across concurrent listens/devices.
+-- `security definer` because anon/authenticated have no direct UPDATE grant
+-- on `songs` (see the table comment above) — this is the one deliberate,
+-- narrow exception: it can only ever add 1 to exactly one column of one row,
+-- nothing else the direct table grant would also allow.
+create or replace function public.increment_song_popularity(song_id text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+    update public.songs set popularity = popularity + 1 where id = song_id;
+$$;
+
+grant execute on function public.increment_song_popularity(text) to anon, authenticated, service_role;
 
 -- ============================================================
 -- playlists / playlist_songs

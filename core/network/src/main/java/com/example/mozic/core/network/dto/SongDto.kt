@@ -13,3 +13,7 @@ data class SongDto(
     @SerialName("audio_url") val audioUrl: String,
     @SerialName("duration_ms") val durationMs: Long? = null,
 )
+
+/** POST body for `rpc/increment_song_popularity` — param name must match the SQL function's. */
+@Serializable
+data class IncrementPopularityRequestDto(@SerialName("song_id") val songId: String)

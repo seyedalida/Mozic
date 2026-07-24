@@ -4,8 +4,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.example.mozic.feature.home.ArtistDetailScreen
 import com.example.mozic.feature.home.HomeScreen
+import com.example.mozic.feature.home.HomeSectionListScreen
+import com.example.mozic.feature.home.TopArtistsScreen
 
 /**
  * Same plain-fade duration/rationale as `PlaylistsNavigation`'s
@@ -19,9 +23,11 @@ import com.example.mozic.feature.home.HomeScreen
 private const val HOME_NAV_TRANSITION_MS = 220
 
 fun NavGraphBuilder.homeScreen(
+    navController: NavHostController,
     onNavigateToPlaylists: () -> Unit,
     onNavigateToLiked: () -> Unit,
     onNavigateToRecentlyPlayed: () -> Unit,
+    onShareClick: (String) -> Unit,
 ) {
     composable<HomeRoute>(
         exitTransition = { fadeOut(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
@@ -31,6 +37,35 @@ fun NavGraphBuilder.homeScreen(
             onNavigateToPlaylists = onNavigateToPlaylists,
             onNavigateToLiked = onNavigateToLiked,
             onNavigateToRecentlyPlayed = onNavigateToRecentlyPlayed,
+            onNavigateToTopArtists = { navController.navigate(TopArtistsRoute) },
+            onNavigateToSection = { section -> navController.navigate(HomeSectionListRoute(section.name)) },
         )
+    }
+    composable<TopArtistsRoute>(
+        enterTransition = { fadeIn(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+        exitTransition = { fadeOut(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+        popEnterTransition = { fadeIn(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+        popExitTransition = { fadeOut(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+    ) {
+        TopArtistsScreen(
+            onBackClick = { navController.popBackStack() },
+            onArtistClick = { artistName -> navController.navigate(ArtistDetailRoute(artistName)) },
+        )
+    }
+    composable<ArtistDetailRoute>(
+        enterTransition = { fadeIn(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+        exitTransition = { fadeOut(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+        popEnterTransition = { fadeIn(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+        popExitTransition = { fadeOut(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+    ) {
+        ArtistDetailScreen(onBackClick = { navController.popBackStack() }, onShareClick = onShareClick)
+    }
+    composable<HomeSectionListRoute>(
+        enterTransition = { fadeIn(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+        exitTransition = { fadeOut(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+        popEnterTransition = { fadeIn(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+        popExitTransition = { fadeOut(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
+    ) {
+        HomeSectionListScreen(onBackClick = { navController.popBackStack() }, onShareClick = onShareClick)
     }
 }
