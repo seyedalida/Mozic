@@ -74,4 +74,6 @@ vcs.xml
 /doc
 .idea
 /music
-/backend/supabase/add_local_songs.py
+/backend/supabase/*.py
+/backend/supabase/*.py
+*__pycache__/

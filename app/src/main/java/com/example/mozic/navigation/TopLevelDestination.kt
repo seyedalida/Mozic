@@ -1,14 +1,9 @@
 package com.example.mozic.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.automirrored.outlined.QueueMusic
+import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,47 +21,46 @@ import kotlin.reflect.KClass
  * tab (see `MozicApp`'s `MozicBottomBar` call) — it's reached via the top bar's avatar instead —
  * but stays a real entry here since [navigateToTopLevelDestination]'s save/restore-state
  * back-stack handling is exactly what that avatar tap should get too.
+ *
+ * [icon] is the same outline glyph for both selected and unselected states —
+ * [MozicBottomBar][com.example.mozic.ui.MozicBottomBar] is icon-only (no
+ * label, no bold/filled swap on selection) for a minimal look, with tint
+ * color the only signal for which tab is active.
  */
 enum class TopLevelDestination(
     val route: Any,
     val routeClass: KClass<*>,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector,
+    val icon: ImageVector,
     val labelRes: Int,
 ) {
     HOME(
         route = HomeRoute,
         routeClass = HomeRoute::class,
-        selectedIcon = Icons.Filled.Home,
-        unselectedIcon = Icons.Outlined.Home,
+        icon = Icons.Outlined.Home,
         labelRes = DesignSystemR.string.nav_home,
     ),
     SEARCH(
         route = SearchRoute,
         routeClass = SearchRoute::class,
-        selectedIcon = Icons.Filled.Search,
-        unselectedIcon = Icons.Outlined.Search,
+        icon = Icons.Outlined.Search,
         labelRes = DesignSystemR.string.nav_search,
     ),
     DOWNLOADS(
         route = DownloadsRoute,
         routeClass = DownloadsRoute::class,
-        selectedIcon = Icons.Filled.Download,
-        unselectedIcon = Icons.Outlined.Download,
+        icon = Icons.Outlined.DownloadForOffline,
         labelRes = DesignSystemR.string.nav_downloads,
     ),
     PLAYLISTS(
         route = PlaylistsRoute,
         routeClass = PlaylistsRoute::class,
-        selectedIcon = Icons.Filled.LibraryMusic,
-        unselectedIcon = Icons.Outlined.LibraryMusic,
+        icon = Icons.AutoMirrored.Outlined.QueueMusic,
         labelRes = DesignSystemR.string.nav_playlists,
     ),
     PROFILE(
         route = ProfileRoute,
         routeClass = ProfileRoute::class,
-        selectedIcon = Icons.Filled.Person,
-        unselectedIcon = Icons.Outlined.Person,
+        icon = Icons.Outlined.Person,
         labelRes = DesignSystemR.string.nav_profile,
     ),
 }

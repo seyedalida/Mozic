@@ -32,9 +32,16 @@ internal object PlayerStateMapper {
         )
     }
 
-    private fun Int.toDomainRepeatMode(): RepeatMode = when (this) {
+    fun Int.toDomainRepeatMode(): RepeatMode = when (this) {
         Player.REPEAT_MODE_ALL -> RepeatMode.ALL
         Player.REPEAT_MODE_ONE -> RepeatMode.ONE
         else -> RepeatMode.OFF
+    }
+
+    /** Inverse of [toDomainRepeatMode] — used when reseeding a controller from persisted/in-memory state. */
+    fun RepeatMode.toPlayerRepeatMode(): Int = when (this) {
+        RepeatMode.ALL -> Player.REPEAT_MODE_ALL
+        RepeatMode.ONE -> Player.REPEAT_MODE_ONE
+        RepeatMode.OFF -> Player.REPEAT_MODE_OFF
     }
 }

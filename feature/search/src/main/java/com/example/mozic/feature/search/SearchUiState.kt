@@ -1,5 +1,7 @@
 package com.example.mozic.feature.search
 
+import com.example.mozic.core.domain.model.Artist
+import com.example.mozic.core.domain.model.Playlist
 import com.example.mozic.core.domain.model.SearchFilter
 
 data class SearchUiState(
@@ -18,11 +20,10 @@ sealed interface SearchEvent {
     data class HistoryItemRemove(val query: String) : SearchEvent
 
     data object Submit : SearchEvent
-
-    /** Artist/playlist results and history navigate later (B4/artist detail not in this track's plan). */
-    data object ResultNeedsDestination : SearchEvent
 }
 
 sealed interface SearchEffect {
-    data object ShowComingSoon : SearchEffect
+    data class NavigateToArtist(val artist: Artist) : SearchEffect
+
+    data class NavigateToPlaylistDetail(val playlist: Playlist) : SearchEffect
 }

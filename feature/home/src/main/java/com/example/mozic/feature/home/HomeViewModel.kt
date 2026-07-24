@@ -74,7 +74,8 @@ class HomeViewModel @Inject constructor(
                 startIndex = event.queue.indexOf(event.song).coerceAtLeast(0),
             )
 
-            is HomeEvent.PlaylistClick -> _effects.trySend(HomeEffect.ShowComingSoon)
+            is HomeEvent.PlaylistClick ->
+                _effects.trySend(HomeEffect.NavigateToPlaylistDetail(event.playlist))
 
             is HomeEvent.QuickActionClick -> when (event.action) {
                 QuickAction.MY_PLAYLISTS -> _effects.trySend(HomeEffect.NavigateToPlaylists)

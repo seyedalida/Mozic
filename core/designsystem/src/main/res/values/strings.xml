@@ -41,7 +41,6 @@
     <string name="state_empty">Nothing here yet</string>
     <string name="state_error">Something went wrong</string>
     <string name="state_error_subtitle">Check your connection and try again</string>
-    <string name="placeholder_coming_soon">Coming soon</string>
 
     <!-- Player -->
     <string name="cd_previous">Previous</string>

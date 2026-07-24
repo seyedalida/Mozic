@@ -3,6 +3,7 @@ package com.example.mozic.core.media
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -25,6 +26,9 @@ data class PersistedPlaybackState(
     val queueIndex: Int,
     val positionMs: Long,
     val speed: Float,
+    val shuffleEnabled: Boolean,
+    /** Raw `Player.REPEAT_MODE_*` int — this module already wraps media3, so no domain mapping needed here. */
+    val repeatMode: Int,
 )
 
 /**
@@ -48,6 +52,8 @@ class PlaybackStateStore(context: Context) {
             prefs[Keys.QUEUE_INDEX] = state.queueIndex
             prefs[Keys.POSITION_MS] = state.positionMs
             prefs[Keys.SPEED] = state.speed
+            prefs[Keys.SHUFFLE_ENABLED] = state.shuffleEnabled
+            prefs[Keys.REPEAT_MODE] = state.repeatMode
         }
     }
 
@@ -64,6 +70,8 @@ class PlaybackStateStore(context: Context) {
             queueIndex = prefs[Keys.QUEUE_INDEX] ?: 0,
             positionMs = prefs[Keys.POSITION_MS] ?: 0L,
             speed = prefs[Keys.SPEED] ?: 1f,
+            shuffleEnabled = prefs[Keys.SHUFFLE_ENABLED] ?: false,
+            repeatMode = prefs[Keys.REPEAT_MODE] ?: 0,
         )
     }
 
@@ -72,5 +80,7 @@ class PlaybackStateStore(context: Context) {
         val QUEUE_INDEX = intPreferencesKey("queue_index")
         val POSITION_MS = longPreferencesKey("position_ms")
         val SPEED = floatPreferencesKey("speed")
+        val SHUFFLE_ENABLED = booleanPreferencesKey("shuffle_enabled")
+        val REPEAT_MODE = intPreferencesKey("repeat_mode")
     }
 }

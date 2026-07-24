@@ -2,20 +2,16 @@ package com.example.mozic.ui
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.material3.ShortNavigationBarItemDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -23,10 +19,19 @@ import com.example.mozic.navigation.TopLevelDestination
 
 private const val HAIRLINE_WIDTH_DP = 1
 
-/** DESIGN.md §2 — "Tab bar labels sit at 9.5px only because they're paired with a 20px icon." */
-private val TabLabelFontSize = 9.5.sp
-
-/** Never more than one active item; active = filled icon + accent, per DESIGN.md §4. */
+/**
+ * Icon-only — no label — for a minimal look: one outline glyph per
+ * [TopLevelDestination] (no bold/filled swap on selection either), with tint
+ * color as the only signal for which tab is active. [TopLevelDestination.labelRes]
+ * still reaches [Icon]'s `contentDescription` so screen readers still
+ * announce a name per tab even though nothing is drawn on screen for it.
+ *
+ * [ShortNavigationBar] (Material3's compact bar, 64dp vs. the tall
+ * [androidx.compose.material3.NavigationBar]'s 80dp) rather than that taller
+ * default with a null label — that per-item still enforces an 80dp minimum
+ * height internally, label or not, so it can't be slimmed down by just
+ * passing `label = null`.
+ */
 @Composable
 fun MozicBottomBar(
     destinations: List<TopLevelDestination>,
@@ -35,7 +40,7 @@ fun MozicBottomBar(
     modifier: Modifier = Modifier,
 ) {
     val hairlineColor = MaterialTheme.colorScheme.outlineVariant
-    NavigationBar(
+    ShortNavigationBar(
         modifier = modifier.drawWithContent {
             drawContent()
             val strokeWidth = HAIRLINE_WIDTH_DP.dp.toPx()
@@ -49,33 +54,20 @@ fun MozicBottomBar(
     ) {
         destinations.forEach { destination ->
             val selected = currentDestination.isTopLevelDestinationInHierarchy(destination)
-            NavigationBarItem(
+            ShortNavigationBarItem(
                 selected = selected,
                 onClick = { onNavigateToDestination(destination) },
                 icon = {
                     Icon(
-                        imageVector = if (selected) destination.selectedIcon else destination.unselectedIcon,
-                        contentDescription = null,
+                        imageVector = destination.icon,
+                        contentDescription = stringResource(destination.labelRes),
                     )
                 },
-                label = {
-                    Text(
-                        text = stringResource(destination.labelRes),
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontSize = TabLabelFontSize,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                        ),
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(
+                label = null,
+                colors = ShortNavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    indicatorColor = Color.Transparent,
+                    selectedIndicatorColor = Color.Transparent,
                 ),
             )
         }

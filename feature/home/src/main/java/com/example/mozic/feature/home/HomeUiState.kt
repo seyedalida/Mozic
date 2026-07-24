@@ -42,6 +42,5 @@ sealed interface HomeEffect {
 
     data class NavigateToSection(val section: HomeSection) : HomeEffect
 
-    /** Destinations that don't exist yet (playlist detail from Home). */
-    data object ShowComingSoon : HomeEffect
+    data class NavigateToPlaylistDetail(val playlist: Playlist) : HomeEffect
 }

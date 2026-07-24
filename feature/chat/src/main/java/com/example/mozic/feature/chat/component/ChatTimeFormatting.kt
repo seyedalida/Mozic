@@ -44,6 +44,10 @@ fun formatDaySeparator(epochMs: Long): String {
 
 fun isSameDay(aEpochMs: Long, bEpochMs: Long): Boolean = epochDay(aEpochMs) == epochDay(bEpochMs)
 
+/** Locale short time (e.g. "3:39 PM") for a single message bubble's own timestamp. */
+fun formatMessageTime(epochMs: Long): String =
+    DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(epochMs))
+
 private fun epochDay(epochMs: Long): Long =
     Instant.ofEpochMilli(epochMs).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
 

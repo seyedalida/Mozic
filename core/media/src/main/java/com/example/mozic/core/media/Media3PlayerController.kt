@@ -11,6 +11,8 @@ import androidx.media3.session.SessionToken
 import com.example.mozic.core.common.result.getOrNull
 import com.example.mozic.core.domain.model.PlayerState
 import com.example.mozic.core.domain.model.Song
+import com.example.mozic.core.media.PlayerStateMapper.toDomainRepeatMode
+import com.example.mozic.core.media.PlayerStateMapper.toPlayerRepeatMode
 import com.example.mozic.core.domain.player.PlayerController
 import com.example.mozic.core.domain.repository.LibraryRepository
 import com.example.mozic.core.domain.repository.SongRepository
@@ -162,7 +164,15 @@ class Media3PlayerController @Inject constructor(
         if (controller.mediaItemCount > 0) return
         val current = internalState.value
         if (current.queue.isNotEmpty()) {
-            seedController(controller, current.queue, current.queueIndex, current.positionMs, current.speed)
+            seedController(
+                controller,
+                current.queue,
+                current.queueIndex,
+                current.positionMs,
+                current.speed,
+                current.shuffleEnabled,
+                current.repeatMode.toPlayerRepeatMode(),
+            )
             return
         }
         val restored = loadRestoredQueue() ?: return
@@ -174,9 +184,19 @@ class Media3PlayerController @Inject constructor(
                 currentSong = restored.songs[restored.index],
                 positionMs = restored.positionMs,
                 speed = restored.speed,
+                shuffleEnabled = restored.shuffleEnabled,
+                repeatMode = restored.repeatMode.toDomainRepeatMode(),
             )
         }
-        seedController(controller, restored.songs, restored.index, restored.positionMs, restored.speed)
+        seedController(
+            controller,
+            restored.songs,
+            restored.index,
+            restored.positionMs,
+            restored.speed,
+            restored.shuffleEnabled,
+            restored.repeatMode,
+        )
     }
 
     private suspend fun seedController(
@@ -185,11 +205,15 @@ class Media3PlayerController @Inject constructor(
         index: Int,
         positionMs: Long,
         speed: Float,
+        shuffleEnabled: Boolean,
+        repeatMode: Int,
     ) {
         val mediaItems = songs.map { playbackSourceResolver.resolve(it) }
         val startIndex = index.coerceIn(0, mediaItems.lastIndex)
         controller.setMediaItems(mediaItems, startIndex, positionMs.coerceAtLeast(0L))
         controller.playbackParameters = PlaybackParameters(speed)
+        controller.shuffleModeEnabled = shuffleEnabled
+        controller.repeatMode = repeatMode
         controller.prepare()
         controller.pause()
     }
@@ -206,10 +230,19 @@ class Media3PlayerController @Inject constructor(
             index = saved.queueIndex.coerceIn(0, resolved.lastIndex),
             positionMs = saved.positionMs,
             speed = saved.speed,
+            shuffleEnabled = saved.shuffleEnabled,
+            repeatMode = saved.repeatMode,
         )
     }
 
-    private data class RestoredQueue(val songs: List<Song>, val index: Int, val positionMs: Long, val speed: Float)
+    private data class RestoredQueue(
+        val songs: List<Song>,
+        val index: Int,
+        val positionMs: Long,
+        val speed: Float,
+        val shuffleEnabled: Boolean,
+        val repeatMode: Int,
+    )
 
     override fun play(songId: String) {
         scope.launch {
@@ -313,6 +346,16 @@ class Media3PlayerController @Inject constructor(
                     internalState.update { current ->
                         PlayerStateMapper.apply(player, current) { id -> queueSongsById[id] }
                     }
+                    // Force rather than waiting for the next throttled tick (PERSIST_INTERVAL_MS)
+                    // — shuffle/repeat are discrete, deliberate toggles, not a continuously
+                    // ticking value like position, so a kill within that window shouldn't be
+                    // able to silently revert one.
+                    if (
+                        events.contains(Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED) ||
+                        events.contains(Player.EVENT_REPEAT_MODE_CHANGED)
+                    ) {
+                        persistState(force = true)
+                    }
                 }
 
                 /**
@@ -328,12 +371,26 @@ class Media3PlayerController @Inject constructor(
                  * Recently Played write, and vice versa; `scope` is
                  * `SupervisorJob`-backed (`MediaModule`), so either one
                  * throwing doesn't cancel the other or the shared scope.
+                 *
+                 * [fadeIn] only runs for [Player.MEDIA_ITEM_TRANSITION_REASON_AUTO] —
+                 * ExoPlayer's own "advanced to the next queued item on its own"
+                 * reason, i.e. a natural song-to-song transition. Every other
+                 * reason (`PLAYLIST_CHANGED` for the very first item of a new
+                 * queue, `SEEK` for a manual next()/previous() skip, `REPEAT`)
+                 * snaps straight to full volume instead — a song someone
+                 * explicitly chose to play or skip to should start immediately,
+                 * not fade in.
                  */
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     val songId = mediaItem?.mediaId ?: return
                     scope.launch { libraryRepository.recordPlayed(songId) }
                     scope.launch { runCatching { songRepository.recordPlaybackForPopularity(songId) } }
-                    fadeIn(controller)
+                    if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                        fadeIn(controller)
+                    } else {
+                        fadeInJob?.cancel()
+                        controller.volume = 1f
+                    }
                 }
             },
         )
@@ -366,6 +423,8 @@ class Media3PlayerController @Inject constructor(
             queueIndex = snapshot.queueIndex,
             positionMs = snapshot.positionMs,
             speed = snapshot.speed,
+            shuffleEnabled = snapshot.shuffleEnabled,
+            repeatMode = snapshot.repeatMode.toPlayerRepeatMode(),
         )
         scope.launch { playbackStateStore.save(toSave) }
     }

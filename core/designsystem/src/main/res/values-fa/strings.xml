@@ -36,7 +36,6 @@
     <string name="state_empty">هنوز چیزی اینجا نیست</string>
     <string name="state_error">مشکلی پیش آمد</string>
     <string name="state_error_subtitle">اتصال خود را بررسی کنید و دوباره تلاش کنید</string>
-    <string name="placeholder_coming_soon">به‌زودی</string>
 
     <!-- Player -->
     <string name="cd_previous">قبلی</string>

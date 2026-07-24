@@ -7,19 +7,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
-import com.example.mozic.core.designsystem.R as DesignSystemR
 import com.example.mozic.core.designsystem.theme.dimens
+import com.example.mozic.core.domain.model.Artist
+import com.example.mozic.core.domain.model.Playlist
 import com.example.mozic.feature.search.component.FilterChipsRow
 import com.example.mozic.feature.search.component.SearchField
 import com.example.mozic.feature.search.component.SearchHistoryList
@@ -28,25 +25,25 @@ import com.example.mozic.feature.search.component.SearchResultsList
 @Composable
 fun SearchScreen(
     onShareClick: (String) -> Unit,
+    onNavigateToArtist: (Artist) -> Unit,
+    onNavigateToPlaylistDetail: (Playlist) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pagingItems = viewModel.results.collectAsLazyPagingItems()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val comingSoonMessage = stringResource(DesignSystemR.string.placeholder_coming_soon)
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                SearchEffect.ShowComingSoon -> snackbarHostState.showSnackbar(comingSoonMessage)
+                is SearchEffect.NavigateToArtist -> onNavigateToArtist(effect.artist)
+                is SearchEffect.NavigateToPlaylistDetail -> onNavigateToPlaylistDetail(effect.playlist)
             }
         }
     }
 
     Scaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(
             modifier = Modifier

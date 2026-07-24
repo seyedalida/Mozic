@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.example.mozic.core.domain.model.Playlist
 import com.example.mozic.feature.home.ArtistDetailScreen
 import com.example.mozic.feature.home.HomeScreen
 import com.example.mozic.feature.home.HomeSectionListScreen
@@ -28,6 +29,7 @@ fun NavGraphBuilder.homeScreen(
     onNavigateToLiked: () -> Unit,
     onNavigateToRecentlyPlayed: () -> Unit,
     onShareClick: (String) -> Unit,
+    onNavigateToPlaylistDetail: (Playlist) -> Unit,
 ) {
     composable<HomeRoute>(
         exitTransition = { fadeOut(animationSpec = tween(HOME_NAV_TRANSITION_MS)) },
@@ -39,6 +41,7 @@ fun NavGraphBuilder.homeScreen(
             onNavigateToRecentlyPlayed = onNavigateToRecentlyPlayed,
             onNavigateToTopArtists = { navController.navigate(TopArtistsRoute) },
             onNavigateToSection = { section -> navController.navigate(HomeSectionListRoute(section.name)) },
+            onNavigateToPlaylistDetail = onNavigateToPlaylistDetail,
         )
     }
     composable<TopArtistsRoute>(

@@ -60,6 +60,15 @@ fun MessageBubble(
                 .clip(MaterialTheme.shapes.medium)
                 .background(bubbleColor)
                 .padding(MaterialTheme.dimens.spaceSm),
+            // End, not the default Start: the timestamp/status row below is
+            // never as wide as the bubble's content, so without this it would
+            // hug the *left* edge instead of trailing under the text. Using
+            // Alignment.End (not a hardcoded right) is what keeps this correct
+            // under RTL for free, same as the outer Row's Arrangement above —
+            // neither child here calls fillMaxWidth(), which is what let the
+            // old status-only row stretch the whole bubble to BubbleMaxWidth
+            // regardless of how short the message actually was.
+            horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(MaterialTheme.dimens.spaceXxs),
         ) {
             when (val payload = message.payload) {
@@ -76,11 +85,16 @@ fun MessageBubble(
                 )
             }
 
-            if (isOwn) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(MaterialTheme.dimens.spaceXxs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = formatMessageTime(message.sentAtEpochMs),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor.copy(alpha = CONTENT_SECONDARY_ALPHA),
+                )
+                if (isOwn) {
                     Icon(
                         imageVector = message.status.icon(),
                         contentDescription = stringResource(message.status.contentDescriptionRes()),

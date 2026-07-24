@@ -6,10 +6,12 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
+import com.example.mozic.core.domain.model.Playlist
 import com.example.mozic.feature.chat.navigation.chatScreens
 import com.example.mozic.feature.chat.navigation.navigateToChatThread
 import com.example.mozic.feature.chat.navigation.navigateToShareSong
 import com.example.mozic.feature.downloads.navigation.downloadsScreen
+import com.example.mozic.feature.home.navigation.ArtistDetailRoute
 import com.example.mozic.feature.home.navigation.HomeRoute
 import com.example.mozic.feature.home.navigation.homeScreen
 import com.example.mozic.feature.library.navigation.LibraryListKind
@@ -48,8 +50,13 @@ fun MozicNavHost(
                 navController.navigateToLibraryList(LibraryListKind.RECENTLY_PLAYED)
             },
             onShareClick = navController::navigateToShareSong,
+            onNavigateToPlaylistDetail = navController::navigateToPlaylistDetail,
         )
-        searchScreen(onShareClick = navController::navigateToShareSong)
+        searchScreen(
+            onShareClick = navController::navigateToShareSong,
+            onNavigateToArtist = { artist -> navController.navigate(ArtistDetailRoute(artist.name)) },
+            onNavigateToPlaylistDetail = navController::navigateToPlaylistDetail,
+        )
         downloadsScreen(onShareClick = navController::navigateToShareSong)
         playlistsScreen(
             navController,
@@ -73,17 +80,7 @@ fun MozicNavHost(
         chatScreens(navController, onNavigateToNowPlaying = navController::navigateToNowPlaying)
         socialScreens(
             navController = navController,
-            onPlaylistClick = { playlist ->
-                navController.navigate(
-                    PlaylistDetailRoute(
-                        playlistId = playlist.id,
-                        title = playlist.title,
-                        coverImageUrl = playlist.coverImageUrl,
-                        songCount = playlist.songCount,
-                        coverImageUrls = playlist.coverImageUrls,
-                    ),
-                )
-            },
+            onPlaylistClick = navController::navigateToPlaylistDetail,
             onNavigateToChatThread = navController::navigateToChatThread,
         )
     }
@@ -113,4 +110,17 @@ fun NavHostController.navigateToTopLevelDestination(destination: TopLevelDestina
 
 fun NavHostController.navigateToSettings() {
     navigate(SettingsRoute)
+}
+
+/** Shared by every entry point that clicks a playlist card (Home, Search, Social). */
+fun NavHostController.navigateToPlaylistDetail(playlist: Playlist) {
+    navigate(
+        PlaylistDetailRoute(
+            playlistId = playlist.id,
+            title = playlist.title,
+            coverImageUrl = playlist.coverImageUrl,
+            songCount = playlist.songCount,
+            coverImageUrls = playlist.coverImageUrls,
+        ),
+    )
 }

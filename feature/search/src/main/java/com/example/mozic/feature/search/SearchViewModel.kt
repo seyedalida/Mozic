@@ -75,16 +75,15 @@ class SearchViewModel @Inject constructor(
             SearchEvent.Submit -> viewModelScope.launch {
                 searchRepository.addToHistory(queryState.value)
             }
-
-            SearchEvent.ResultNeedsDestination -> _effects.trySend(SearchEffect.ShowComingSoon)
         }
     }
 
     fun onResultClick(result: SearchResult) {
         when (result) {
             is SearchResult.SongResult -> playerController.play(result.song.id)
-            is SearchResult.ArtistResult, is SearchResult.PlaylistResult ->
-                onEvent(SearchEvent.ResultNeedsDestination)
+            is SearchResult.ArtistResult -> _effects.trySend(SearchEffect.NavigateToArtist(result.artist))
+            is SearchResult.PlaylistResult ->
+                _effects.trySend(SearchEffect.NavigateToPlaylistDetail(result.playlist))
         }
     }
 }
